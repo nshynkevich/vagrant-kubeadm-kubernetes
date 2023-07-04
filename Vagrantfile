@@ -1,4 +1,3 @@
-
 require "yaml"
 settings = YAML.load_file "settings.yaml"
 
@@ -23,6 +22,7 @@ Vagrant.configure("2") do |config|
   else
     config.vm.box = settings["software"]["box"]
   end
+
   config.vm.box_check_update = true
 
   config.vm.define "master" do |master|
@@ -33,6 +33,7 @@ Vagrant.configure("2") do |config|
         master.vm.synced_folder shared_folder["host_path"], shared_folder["vm_path"]
       end
     end
+
     master.vm.provider "virtualbox" do |vb|
         vb.cpus = settings["nodes"]["control"]["cpu"]
         vb.memory = settings["nodes"]["control"]["memory"]
@@ -40,24 +41,39 @@ Vagrant.configure("2") do |config|
           vb.customize ["modifyvm", :id, "--groups", ("/" + settings["cluster_name"])]
         end
     end
-    master.vm.provision "shell",
-      env: {
+
+    master.vm.provision "shell", env: {
         "DNS_SERVERS" => settings["network"]["dns_servers"].join(" "),
         "ENVIRONMENT" => settings["environment"],
         "KUBERNETES_VERSION" => settings["software"]["kubernetes"],
         "OS" => settings["software"]["os"]
-      },
-      path: "scripts/common.sh"
-    master.vm.provision "shell",
-      env: {
+      }, path: "scripts/common.sh"
+
+    master.vm.provision "shell", env: {
         "CALICO_VERSION" => settings["software"]["calico"],
         "CONTROL_IP" => settings["network"]["control_ip"],
         "POD_CIDR" => settings["network"]["pod_cidr"],
         "SERVICE_CIDR" => settings["network"]["service_cidr"]
-      },
-      path: "scripts/master.sh"
+      }, path: "scripts/master.sh"
+
+    # Install lab soft on master
+    master.vm.provision "shell", env: {
+        "TOOLS_DIR" => settings["lab_software"]["tools_dir"],
+        "FLUX_VERSION" => settings["lab_software"]["flux_version"],
+        "ETCDCTL_VERSION" => settings["lab_software"]["etcdctl_version"],
+        "CILIUMCLI_VERSION" => settings["lab_software"]["ciliumcli_version"],
+        "CILIUMEXEC_VERSION" => settings["lab_software"]["ciliumexec_version"],
+        "HUBBLECLI_VERSION" => settings["lab_software"]["hubblecli_version"],
+        "KYVERNOCLI_VERSION" => settings["lab_software"]["kyvernocli_version"],
+        "YQ_VERSION" => settings["lab_software"]["yq_version"],
+        "HELM_VERSION" => settings["lab_software"]["helm_version"]
+      }, path: "scripts/misc.sh"
+      
   end
 
+  # ##############################
+  # Node(s) installation start
+  # ##############################
   (1..NUM_WORKER_NODES).each do |i|
 
     config.vm.define "node0#{i}" do |node|
@@ -68,6 +84,7 @@ Vagrant.configure("2") do |config|
           node.vm.synced_folder shared_folder["host_path"], shared_folder["vm_path"]
         end
       end
+
       node.vm.provider "virtualbox" do |vb|
           vb.cpus = settings["nodes"]["workers"]["cpu"]
           vb.memory = settings["nodes"]["workers"]["memory"]
@@ -75,20 +92,21 @@ Vagrant.configure("2") do |config|
             vb.customize ["modifyvm", :id, "--groups", ("/" + settings["cluster_name"])]
           end
       end
-      node.vm.provision "shell",
-        env: {
+
+      node.vm.provision "shell", env: {
           "DNS_SERVERS" => settings["network"]["dns_servers"].join(" "),
           "ENVIRONMENT" => settings["environment"],
           "KUBERNETES_VERSION" => settings["software"]["kubernetes"],
           "OS" => settings["software"]["os"]
-        },
-        path: "scripts/common.sh"
+        }, path: "scripts/common.sh"
+
       node.vm.provision "shell", path: "scripts/node.sh"
 
       # Only install the dashboard after provisioning the last worker (and when enabled).
       if i == NUM_WORKER_NODES and settings["software"]["dashboard"] and settings["software"]["dashboard"] != ""
         node.vm.provision "shell", path: "scripts/dashboard.sh"
       end
+
     end
 
   end

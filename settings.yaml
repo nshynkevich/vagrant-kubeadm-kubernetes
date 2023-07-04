@@ -10,7 +10,7 @@ cluster_name: Kubernetes Cluster
 # All IPs/CIDRs should be private and allowed in /etc/vbox/networks.conf.
 network:
   # Worker IPs are simply incremented from the control IP.
-  control_ip: 10.0.0.10
+  control_ip: 10.0.20.10
   dns_servers:
     - 8.8.8.8
     - 1.1.1.1
@@ -33,6 +33,30 @@ software:
   box: bento/ubuntu-22.04
   calico: 3.26.0
   # To skip the dashboard installation, set its version to an empty value or comment it out:
-  dashboard: 2.7.0
+  #dashboard: 2.7.0
   kubernetes: 1.27.1-00
   os: xUbuntu_22.04
+lab_software:
+  # Tools directory
+  tools_dir: /vagrant/tmp
+  flux_version: 0.41.2
+  etcdctl_version: v3.5.1
+  ciliumcli_version: v0.13.2
+  ciliumexec_version: 999
+  hubblecli_version: 999
+  kyvernocli_version: v1.8.2
+  yq_version: v4.30.5
+  helm_version: v3.10.2
+
+
+
+
+
+
+
+
+
+
+
+
+
